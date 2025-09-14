@@ -1,0 +1,52 @@
+name: Update Dashboard
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Daily at noon UTC
+  push:
+    paths:
+      - 'MS Expenses.xlsx'
+      - 'ms_expenses_analysis.py'
+      - 'generate_dashboard.py'
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  update-dashboard:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Generate dashboard data
+      run: |
+        python generate_dashboard.py
+    
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add dashboard_data.json
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🔄 Update dashboard data - $(date)"
+          git push
+        fi
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./
+        keep_files: true
